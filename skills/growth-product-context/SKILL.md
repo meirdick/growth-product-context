@@ -2,6 +2,17 @@
 name: growth-product-context
 description: "Discovers user journeys by scanning routes, controllers, and models, then proposes a product context with event names. Activates when mapping journeys, defining product context, creating PRODUCT.md, discovering what to track, or when the user mentions product context, journey mapping, or route discovery."
 license: MIT
+compatible_agents:
+  - Claude Code
+  - Cursor
+  - Windsurf
+tags:
+  - Laravel
+  - PHP
+  - PostHog
+  - analytics
+  - growth
+  - product-analytics
 metadata:
   author: growth-engineering
 ---
