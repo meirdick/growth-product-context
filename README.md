@@ -13,7 +13,7 @@ A free [Laravel Boost](https://boost.laravel.com) skill that discovers your appl
 ## Install
 
 ```bash
-boost:add-skill meirdick/growth-product-context
+php artisan boost:add-skill meirdick/growth-product-context
 ```
 
 Then activate the skill:
