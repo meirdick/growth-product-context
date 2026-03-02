@@ -12,13 +12,12 @@ A free [Laravel Boost](https://boost.laravel.com) skill that discovers your appl
 
 ## Install
 
-**Prerequisites:** [Laravel Boost](https://boost.laravel.com) with skills enabled. If you haven't enabled skills yet, re-run `php artisan boost:install` and select skills when prompted.
-
 ```bash
 php artisan boost:add-skill meirdick/growth-product-context
+php artisan boost:install --skills --no-interaction
 ```
 
-Then activate the skill in your AI agent:
+The first command downloads the skill. The second syncs it to your agent (Claude Code, Cursor, etc.). Then activate:
 
 ```
 /growth-product-context
@@ -27,7 +26,7 @@ Then activate the skill in your AI agent:
 ## Requirements
 
 - Laravel application
-- [Laravel Boost](https://boost.laravel.com) installed with skills enabled
+- [Laravel Boost](https://boost.laravel.com) v2+
 
 ## Want More?
 
