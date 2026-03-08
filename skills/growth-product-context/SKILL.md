@@ -105,9 +105,10 @@ Use the following rule table to classify routes into journey domains:
 | Route Pattern | Journey Domain | AARRR Stage |
 |--------------|----------------|-------------|
 | `/`, `landing`, `pricing`, `about`, `features`, `blog*`, public marketing pages | Acquisition | Acquisition |
-| `register`, `signup`, `verify-email` | Activation | Activation |
-| `onboard*`, `welcome`, `getting-started`, first core action | Activation | Activation |
-| `login`, `logout`, `password/*`, `two-factor*` | Authentication (supports Activation & Retention) | — |
+| `register`, `signup`, `verify-email` | Acquisition (conversion) | Acquisition |
+| `onboard*`, `welcome`, `getting-started` | Activation (Setup Moment) | Activation |
+| First core action (create first {central_model}, complete first workflow) | Activation (Aha Moment) | Activation |
+| `login`, `logout`, `password/*`, `two-factor*` | Authentication (supports Retention) | — |
 | Core resource CRUD (the central model's routes) | Value Delivery | Retention |
 | `dashboard`, `home`, `feed`, `overview` | Value Delivery (entry point) | Retention |
 | Secondary resource CRUD | Engagement | Retention |
@@ -117,9 +118,17 @@ Use the following rule table to classify routes into journey domains:
 | `admin/*`, `health`, `up`, `status`, `horizon`, `telescope` | Internal (skip) | — |
 | `api/*` | Mirror of web domain (classify by resource) | — |
 
-**Key distinction between Acquisition and Activation:**
-- **Acquisition** = the user arrives (anonymous visitor). Track: landing page views, blog views, traffic source, UTM parameters, referral. These events fire *before* any authentication.
-- **Activation** = the user signs up and reaches the "aha moment". Track: registration, email verification, onboarding steps, first core action. The boundary between acquisition and activation is the registration event.
+**Acquisition vs Activation — the boundary is signup:**
+
+- **Acquisition** = anonymous visitor → registered user. Acquisition covers everything from first visit through signup. Track: pageviews, traffic source, UTM parameters, blog engagement, pricing page views, and `user_signed_up` as the conversion event. Signup **ends** Acquisition.
+- **Activation** = registered user → first "aha moment." Activation begins **after** signup. It has three sub-moments (per Reforge):
+  1. **Setup Moment** — user completes onboarding steps, configures workspace, connects integrations
+  2. **Aha Moment** — user experiences core product value for the first time (e.g. creates first project, sees first result, gets first insight). This is the activation metric.
+  3. **Habit Moment** — user repeats the core action enough to form a pattern (bridges into Retention)
+
+The aha moment is the key activation metric: it's the earliest event that predicts long-term retention. It is experiential, not intellectual — the user doesn't just *understand* the product, they *feel* its value. Famous examples: Facebook = add 7 friends in 10 days, Slack = 2,000 team messages, Dropbox = first file synced across devices.
+
+**Benchmark:** Median activation rate (signup → aha moment) across SaaS products is ~25%. Average is 34%. A 25% improvement in activation rate can yield a ~34% increase in MRR.
 
 Present the classified routes grouped by domain. Ask the user to confirm or reassign any misclassified routes.
 
@@ -221,16 +230,17 @@ Proposed central model: Project
 ```
 Proposed journey domains:
 
-ACQUISITION (2 routes)
-  / (landing page), /pricing
+ACQUISITION (4 routes) — guest visitor → registered user
+  / (landing page), /pricing, /register, /verify-email
 
-ACTIVATION (6 routes)
-  /register, /verify-email, /onboarding/step-1, /onboarding/step-2,
-  /onboarding/step-3, /onboarding/complete
+ACTIVATION (5 routes) — registered user → aha moment
+  Setup: /onboarding/step-1, /onboarding/step-2, /onboarding/step-3,
+         /onboarding/complete
+  Aha:   /projects/create (first project = core value experienced)
 
-VALUE DELIVERY (12 routes)
-  /dashboard, /projects, /projects/create, /projects/{id},
-  /projects/{id}/edit, /tasks/create, /tasks/{id}/complete, ...
+VALUE DELIVERY (12 routes) — ongoing core usage
+  /dashboard, /projects, /projects/{id}, /projects/{id}/edit,
+  /tasks/create, /tasks/{id}/complete, ...
 
 MONETIZATION (4 routes)
   /billing, /subscribe/{plan}, /checkout, /billing/portal
@@ -245,41 +255,50 @@ INTERNAL (skipped: 4 routes)
   /admin/*, /health, /up
 
 Does this grouping look right? Should any routes move to a different domain?
+What is the "aha moment" — the first action where a user experiences real value?
 ```
 
 ### Journey flow diagrams
 
 ```
-ACQUISITION JOURNEY
+ACQUISITION JOURNEY (guest → registered user)
 
-  Land on         Read Blog       View            Click
-  Homepage        Post            Pricing         Sign Up CTA
-     |              |              |                |
-     v              v              v                v
-  $pageview      $pageview      $pageview       cta_clicked
+  Land on         Read Blog       View            Sign Up         Verify
+  Homepage        Post            Pricing                         Email
+     |              |              |                |               |
+     v              v              v                v               v
+  $pageview      $pageview      $pageview       user_signed_    email_
+                                                   up            verified
      |              |              |                |
      props:         props:         props:           props:
-     - $referrer    - $referrer    - $referrer      - cta_location
-     - utm_source   - utm_source   - utm_source     - page
-     - utm_medium   - blog_slug    - utm_medium
+     - $referrer    - $referrer    - $referrer      - method
+     - utm_source   - utm_source   - utm_source     - referral_source
+     - utm_medium   - blog_slug    - utm_medium     - utm_source
      - utm_campaign
 
-
-ACTIVATION JOURNEY
-
-  Register       Verify Email    Complete         First Core
-  Account                       Onboarding        Action
-     |              |              |               |
-     v              v              v               v
-  user_signed_    email_       onboarding_     project_created
-     up           verified      completed
-     |                              |
-     props:                         props:
-     - method                       - steps_completed
-     - referral_source              - time_to_complete
+  Conversion event: user_signed_up
+  Metric: signup rate = signups / unique visitors
 
 
-VALUE DELIVERY JOURNEY
+ACTIVATION JOURNEY (registered user → aha moment)
+
+  Complete          Configure        First Core Action
+  Onboarding        Workspace        (AHA MOMENT)
+     |                 |                |
+     v                 v                v
+  onboarding_       workspace_      project_created    ← activation metric
+  completed         configured
+     |                                  |
+     props:                             props:
+     - steps_completed                  - template
+     - time_to_complete                 - time_since_signup
+
+  Setup Moment: onboarding_completed
+  Aha Moment: project_created (first time user experiences core value)
+  Metric: activation rate = users who hit aha / signups (benchmark: ~25% median)
+
+
+VALUE DELIVERY JOURNEY (ongoing core usage)
 
   Open           Create         Add            Complete        View
   Dashboard      Project        Tasks          Task           Progress
@@ -383,9 +402,11 @@ Each journey file follows this structure (example: `.growth/journeys/acquisition
 ```markdown
 # Acquisition Journey
 
+Guest visitor → registered user. Ends at signup.
+
 ## Flow
 
-Land on Homepage / Blog → View Pricing → Click Sign Up CTA
+Land on Homepage / Blog → View Pricing → Sign Up → Verify Email
 
 ## Events
 
@@ -394,16 +415,23 @@ Land on Homepage / Blog → View Pricing → Click Sign Up CTA
 | View landing page | `$pageview` | auto | `$referrer`, `utm_source`, `utm_medium`, `utm_campaign` | Not Tracked |
 | Read blog post | `$pageview` | auto | `$referrer`, `utm_source`, `blog_slug` | Not Tracked |
 | View pricing page | `$pageview` | auto | `$referrer`, `utm_source` | Not Tracked |
-| Click sign up CTA | `cta_clicked` | client | `cta_location`, `page` | Not Tracked |
+| Sign up | `user_signed_up` | server | `method`, `referral_source`, `utm_source` | Not Tracked |
+| Verify email | `email_verified` | server | `time_to_verify` | Not Tracked |
 
 ## Conversion Funnel
 
-$pageview (landing) → $pageview (pricing) → cta_clicked → user_signed_up (handoff to Activation)
+$pageview (landing) → $pageview (pricing) → user_signed_up → email_verified → [handoff to Activation]
+
+## Metrics
+
+- **Signup rate:** user_signed_up / unique visitors
+- **Verification rate:** email_verified / user_signed_up
 
 ## Notes
 
-- Acquisition events fire for anonymous visitors — no `distinctId` until registration
-- Capture UTM parameters on first `$pageview`
+- Acquisition events fire for anonymous visitors until signup — no `distinctId` until `user_signed_up`
+- At signup, alias the anonymous ID to the new user ID (PostHog handles this automatically)
+- Capture UTM parameters on first `$pageview` and carry them through to `user_signed_up`
 - Blog posts are key entry points — track `blog_slug` to identify high-converting content
 ```
 
@@ -422,7 +450,11 @@ $pageview (landing) → $pageview (pricing) → cta_clicked → user_signed_up (
 
 ## References
 
-- [AARRR (Pirate Metrics) Framework](https://www.productplan.com/glossary/aarrr-framework/) — The growth model used for journey classification
+- [Dave McClure — Startup Metrics for Pirates (2007)](https://www.slideshare.net/dmc500hats/startup-metrics-for-pirates-long-version) — Original AARRR framework
+- [Lenny Rachitsky — What Is a Good Activation Rate?](https://www.lennysnewsletter.com/p/what-is-a-good-activation-rate) — Activation benchmarks (median 25%, SaaS avg 36%)
+- [Lenny Rachitsky — How to Determine Your Activation Metric](https://www.lennysnewsletter.com/p/how-to-determine-your-activation) — Finding your aha moment
+- [Reforge — Define Customer Activation Moments](https://www.reforge.com/guides/define-customer-activation-moments) — Setup / Aha / Habit sub-moments
+- [Reforge — Define Your Aha Moment](https://www.reforge.com/guides/define-your-aha-moment) — How to identify and validate aha moments
 - [Growth Engineering](https://growengine.dev) — Full package with auto-instrumentation, tracking audits, and PostHog MCP tools
 - [Laravel Boost](https://boost.laravel.com) — Required for `list-routes`, `database-schema`, and `tinker` tools
 - [PostHog](https://posthog.com/docs) — Event naming conventions and property standards
