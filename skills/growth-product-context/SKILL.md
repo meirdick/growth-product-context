@@ -39,14 +39,13 @@ This skill scans a Laravel application's routes, controllers, and Eloquent model
 - The user asks to "map journeys", "define product context", or "what should I track"
 - `.growth/PRODUCT.md` exists but still has placeholder values (e.g., `[Your Product Name]`)
 - The user wants to discover or define their product's user journeys
-- The user wants to create a `.growth/` directory with product context files
 
 **Prerequisites:**
 
 1. A Laravel application with routes, controllers, and models
-2. Laravel Boost installed (provides the `list-routes`, `database-schema`, and `tinker` tools used below)
+2. Laravel Boost installed (provides `list-routes`, `database-schema`, and `tinker` tools)
 
-If `.growth/PRODUCT.md` doesn't exist yet, create it during Step 10.
+If `.growth/PRODUCT.md` doesn't exist yet, create it during Step 12.
 
 ---
 
@@ -54,397 +53,98 @@ If `.growth/PRODUCT.md` doesn't exist yet, create it during Step 10.
 
 ### Key Principles
 
-1. **Propose, don't ask** — Always present a concrete proposal based on what you discover in the codebase. Never show blank templates or ask the user to fill in fields from scratch.
-2. **Confirm per domain** — Present each journey domain (Activation, Value Delivery, etc.) separately and get confirmation before moving on.
+1. **Propose, don't ask** — Present concrete proposals based on what the codebase reveals. Never show blank templates.
+2. **Confirm per domain** — Present each journey domain separately and get confirmation before moving on.
 3. **Incremental refinement** — Start with what the code reveals, then let the user correct and refine.
+4. **Plan before writing** — Steps 1–10 are read-only discovery. Enter plan mode at the start and do not write any files until the user approves the final plan.
 
-### Step 1: Discover Routes
+### Step 1: Enter Plan Mode
 
-Read the application's route files to understand what endpoints exist:
+Enter plan mode before beginning discovery. Steps 1–10 are read-only — you will not write any files until the user approves the consolidated plan in Step 11.
 
-1. Read `routes/web.php` and `routes/api.php`
-2. Check for Folio page-based routing in `resources/views/pages/`
-3. Use the `list-routes` tool from Laravel Boost to get the full route table
-4. Present a summary table to the user (see Examples below)
+### Step 2: Discover Routes
 
-### Step 2: Map Controllers
+Read `routes/web.php` and `routes/api.php`. Check for Folio page-based routing in `resources/views/pages/`. Use the `list-routes` tool from Laravel Boost to get the full route table. Present a summary to the user.
 
-For each route group, read the associated controllers to understand what actions exist:
+### Step 3: Map Controllers
 
-1. Identify the controller for each route
-2. Note which models are referenced (created, updated, deleted)
-3. Note any events fired, jobs dispatched, or notifications sent
-4. Note form request classes used (these reveal important user inputs)
+For each route group, read the associated controllers. Note which models are referenced, events fired, jobs dispatched, notifications sent, and form request classes used.
 
-### Step 3: Identify Domain Entities
+### Step 4: Identify Domain Entities
 
-Read the application's Eloquent models to understand the domain:
+List all models in `app/Models/`, read their relationships/casts/scopes, and use `database-schema` to inspect table structures. Identify the **central model** (most relationships, most user interaction). Ask the user to confirm.
 
-1. List all models in `app/Models/`
-2. Read each model's relationships, casts, and scopes
-3. Use the `database-schema` tool to inspect table structures
-4. Identify the **central model** — the model with the most relationships and the one users interact with most frequently
+### Step 5: Detect Frontend Stack
 
-Ask the user to confirm or correct the central model.
+Check `composer.json` for Inertia or Livewire, `package.json` for frontend framework, and `resources/views/` for Blade views. Report the detected stack.
 
-### Step 4: Detect Frontend Stack
+### Step 6: Classify Routes into Journey Domains
 
-Check which frontend technologies are in use:
+Classify routes using the AARRR framework: Acquisition, Activation, Retention, Revenue, Referral.
 
-1. Check `composer.json` for `inertiajs/inertia-laravel` or `livewire/livewire`
-2. Check `package.json` for `@inertiajs/react`, `@inertiajs/vue3`, or `@inertiajs/svelte`
-3. Check for Blade views in `resources/views/`
-4. Report the detected stack
+Read `references/classification-rules.md` for the route-to-domain table and the Acquisition vs Activation boundary rules.
 
-### Step 5: Classify Routes into Journey Domains
+Present classified routes grouped by domain. Ask the user to confirm or reassign any misclassified routes.
 
-Domains follow the **AARRR (Pirate Metrics)** framework: Acquisition → Activation → Retention → Revenue → Referral.
+### Step 7: Propose Journeys
 
-Use the following rule table to classify routes into journey domains:
+For each confirmed domain, propose a journey flow with specific event names derived from the controllers.
 
-| Route Pattern | Journey Domain | AARRR Stage |
-|--------------|----------------|-------------|
-| `/`, `landing`, `pricing`, `about`, `features`, `blog*`, public marketing pages | Acquisition | Acquisition |
-| `register`, `signup`, `verify-email` | Acquisition (conversion) | Acquisition |
-| `onboard*`, `welcome`, `getting-started` | Activation (Setup Moment) | Activation |
-| First core action (create first {central_model}, complete first workflow) | Activation (Aha Moment) | Activation |
-| `login`, `logout`, `password/*`, `two-factor*` | Authentication (supports Retention) | — |
-| Core resource CRUD (the central model's routes) | Value Delivery | Retention |
-| `dashboard`, `home`, `feed`, `overview` | Value Delivery (entry point) | Retention |
-| Secondary resource CRUD | Engagement | Retention |
-| `settings`, `profile`, `account`, `preferences`, `notifications` | Engagement | Retention |
-| `billing`, `subscribe`, `checkout`, `payment`, `plan*`, `pricing` | Monetization | Revenue |
-| `invite*`, `share*`, `team*`, `referral*`, `export*` | Expansion | Referral |
-| `admin/*`, `health`, `up`, `status`, `horizon`, `telescope` | Internal (skip) | — |
-| `api/*` | Mirror of web domain (classify by resource) | — |
+Read `references/examples.md` for journey flow format and examples.
 
-**Acquisition vs Activation — the boundary is signup:**
+Present each journey and ask: "Does this flow match how users actually use the product?", "Are there any steps I'm missing?", "Should any events be renamed?"
 
-- **Acquisition** = anonymous visitor → registered user. Acquisition covers everything from first visit through signup. Track: pageviews, traffic source, UTM parameters, blog engagement, pricing page views, and `user_signed_up` as the conversion event. Signup **ends** Acquisition.
-- **Activation** = registered user → first "aha moment." Activation begins **after** signup. It has three sub-moments (per Reforge):
-  1. **Setup Moment** — user completes onboarding steps, configures workspace, connects integrations
-  2. **Aha Moment** — user experiences core product value for the first time (e.g. creates first project, sees first result, gets first insight). This is the activation metric.
-  3. **Habit Moment** — user repeats the core action enough to form a pattern (bridges into Retention)
-
-The aha moment is the key activation metric: it's the earliest event that predicts long-term retention. It is experiential, not intellectual — the user doesn't just *understand* the product, they *feel* its value. Famous examples: Facebook = add 7 friends in 10 days, Slack = 2,000 team messages, Dropbox = first file synced across devices.
-
-**Benchmark:** Median activation rate (signup → aha moment) across SaaS products is ~25%. Average is 34%. A 25% improvement in activation rate can yield a ~34% increase in MRR.
-
-Present the classified routes grouped by domain. Ask the user to confirm or reassign any misclassified routes.
-
-### Step 6: Propose Journeys
-
-For each confirmed domain, propose a journey as an ASCII flow diagram with specific event names derived from the controllers (see Examples below).
-
-Present each journey and ask:
-- "Does this flow match how users actually use the product?"
-- "Are there any steps I'm missing?"
-- "Should any events be renamed?"
-
-### Step 7: Identify Core Action
+### Step 8: Identify Core Action
 
 Based on the central model and the value delivery journey, propose the core action. Ask the user to confirm or provide an alternative.
 
-### Step 8: Detect Usage Pattern
+### Step 9: Detect Usage Pattern
 
-Examine the codebase for signals that reveal how frequently users interact with the product. This determines which metrics are meaningful.
+Examine the codebase for signals that reveal how frequently users interact with the product.
 
-| Signal in Codebase | Usage Pattern | Why |
-|---------------------|--------------|-----|
-| Notification/reminder models, streak counters, daily metric tables, `last_active_at` on users | **Daily Habitual** | Product expects users back every day |
-| Date-range models (`start_date`/`end_date`), trip/project/event with lifecycle states, milestone tracking | **Episodic** | Users have intense windows then go dormant |
-| Order/transaction/payment models, cart/checkout, booking system, invoice tables | **Transactional** | Each interaction is an independent value exchange |
-| Season/period fields, tax-year, annual-cycle, holiday/calendar models | **Seasonal** | Usage follows predictable calendar patterns |
-| Content library, playback/progress tracking, watch/read history, recommendation models | **Consumption** | Users consume content on an ongoing basis |
+Read `references/classification-rules.md` for the usage pattern detection table and success metrics per pattern.
 
 Present the detected pattern with evidence. Ask the user to confirm or correct.
 
-### Step 9: Define Success Metric
+### Step 10: Define Success Metric
 
 Based on the core action AND the detected usage pattern, propose a success metric. **Do not default to Weekly Active Users** — choose the metric that fits the pattern.
 
-**Daily Habitual:** DAU with DAU/MAU stickiness ratio (target 0.3+)
-**Episodic:** Active Window Engagement Rate + Repeat {central_model} Rate
-**Transactional:** Repeat Transaction Rate + Transactions per Active User
-**Seasonal:** Season-over-Season Retention + Seasonal Completion Rate
-**Consumption:** Consumption Hours per Active User + DAU/MAU stickiness
+Read `references/classification-rules.md` for pattern-to-metric mapping.
 
-Present the pattern-appropriate metric and ask the user to confirm.
+### Step 11: Present Consolidated Plan
 
-### Step 10: Write Results
+Present a single consolidated plan summarizing everything discovered and confirmed:
 
-After the user confirms all domains, journeys, core action, and success metric:
+- Product overview (name, one-liner, stage, value prop)
+- Central model and core action
+- Usage pattern and success metric
+- All journey domains with their flows and event names
 
-1. **Create `.growth/` directory** if it doesn't exist:
-   - Create subdirectories: `journeys/`, `experiments/`, `research/`, `decisions/`, `channels/`, `segments/`, `digests/`
-2. **Write `.growth/PRODUCT.md`** — Fill in the product context with confirmed values (see Examples below for format)
-3. **Create journey files** in `.growth/journeys/` — One file per domain (see Examples below for format)
+Ask the user to approve the plan before proceeding. Do not write any files until the user explicitly approves.
 
----
+### Step 12: Write Results
 
-## Examples
+After the user approves the plan, exit plan mode and write the files:
 
-### Route discovery summary
+1. **Create `.growth/` directory** if it doesn't exist, with subdirectories: `journeys/`, `experiments/`, `research/`, `decisions/`, `channels/`, `segments/`, `digests/`
+2. **Write `.growth/PRODUCT.md`** with confirmed values
+3. **Create journey files** in `.growth/journeys/` — one file per domain
 
-```
-Found 42 routes across web and API:
+Read `references/output-formats.md` for the PRODUCT.md and journey file templates.
 
-| Domain     | Routes | Examples                          |
-|------------|--------|-----------------------------------|
-| Auth       | 8      | /login, /register, /password/reset |
-| Dashboard  | 3      | /dashboard, /dashboard/stats       |
-| Resources  | 18     | /projects/*, /tasks/*              |
-| Billing    | 5      | /billing, /subscribe, /checkout    |
-| Settings   | 6      | /settings/*, /profile              |
-| API        | 12     | /api/v1/projects, /api/v1/tasks    |
-```
-
-### Controller mapping summary
-
-```
-Key actions found:
-
-- ProjectController: create, update, archive, share (uses Project model)
-- TaskController: create, complete, assign, reorder (uses Task model)
-- BillingController: subscribe, cancel, updatePlan (uses Subscription model)
-- OnboardingController: step1, step2, complete (uses User model)
-```
-
-### Domain entity summary
-
-```
-Domain entities:
-
-- User (central: has projects, tasks, subscriptions, teams)
-- Project (belongs to user, has many tasks)
-- Task (belongs to project, has statuses)
-- Subscription (belongs to user, has plan)
-- Team (belongs to user, has members)
-
-Proposed central model: Project
-  Rationale: Most relationships, core CRUD operations, referenced in most controllers
-```
-
-### Journey domain classification
-
-```
-Proposed journey domains:
-
-ACQUISITION (4 routes) — guest visitor → registered user
-  / (landing page), /pricing, /register, /verify-email
-
-ACTIVATION (5 routes) — registered user → aha moment
-  Setup: /onboarding/step-1, /onboarding/step-2, /onboarding/step-3,
-         /onboarding/complete
-  Aha:   /projects/create (first project = core value experienced)
-
-VALUE DELIVERY (12 routes) — ongoing core usage
-  /dashboard, /projects, /projects/{id}, /projects/{id}/edit,
-  /tasks/create, /tasks/{id}/complete, ...
-
-MONETIZATION (4 routes)
-  /billing, /subscribe/{plan}, /checkout, /billing/portal
-
-ENGAGEMENT (6 routes)
-  /settings, /profile, /notifications, /preferences, ...
-
-EXPANSION (3 routes)
-  /teams/invite, /projects/{id}/share, /referral
-
-INTERNAL (skipped: 4 routes)
-  /admin/*, /health, /up
-
-Does this grouping look right? Should any routes move to a different domain?
-What is the "aha moment" — the first action where a user experiences real value?
-```
-
-### Journey flow diagrams
-
-```
-ACQUISITION JOURNEY (guest → registered user)
-
-  Land on         Read Blog       View            Sign Up         Verify
-  Homepage        Post            Pricing                         Email
-     |              |              |                |               |
-     v              v              v                v               v
-  $pageview      $pageview      $pageview       user_signed_    email_
-                                                   up            verified
-     |              |              |                |
-     props:         props:         props:           props:
-     - $referrer    - $referrer    - $referrer      - method
-     - utm_source   - utm_source   - utm_source     - referral_source
-     - utm_medium   - blog_slug    - utm_medium     - utm_source
-     - utm_campaign
-
-  Conversion event: user_signed_up
-  Metric: signup rate = signups / unique visitors
-
-
-ACTIVATION JOURNEY (registered user → aha moment)
-
-  Complete          Configure        First Core Action
-  Onboarding        Workspace        (AHA MOMENT)
-     |                 |                |
-     v                 v                v
-  onboarding_       workspace_      project_created    ← activation metric
-  completed         configured
-     |                                  |
-     props:                             props:
-     - steps_completed                  - template
-     - time_to_complete                 - time_since_signup
-
-  Setup Moment: onboarding_completed
-  Aha Moment: project_created (first time user experiences core value)
-  Metric: activation rate = users who hit aha / signups (benchmark: ~25% median)
-
-
-VALUE DELIVERY JOURNEY (ongoing core usage)
-
-  Open           Create         Add            Complete        View
-  Dashboard      Project        Tasks          Task           Progress
-     |              |              |              |               |
-     v              v              v              v               v
-  dashboard_    project_       task_          task_           dashboard_
-  viewed        created        created        completed       viewed
-                   |              |              |
-                   props:         props:         props:
-                   - template     - project_id   - project_id
-                                  - position     - time_to_complete
-```
-
-### Core action proposal
-
-```
-Proposed core action: project_created
-
-Rationale:
-- Project is the central model with the most relationships
-- Creating a project is the primary action in the value delivery journey
-- It represents the moment the user gets value from the product
-
-Is this the right core action, or is there a different action that
-better represents the "aha moment" for your users?
-```
-
-### Usage pattern detection
-
-```
-Detected usage pattern: Episodic
-
-Evidence:
-- Trip model has `departure_date` and `return_date` (lifecycle dates)
-- Checklist items are tied to a trip with a finite completion state
-- No daily streak or notification loop features
-- Users plan intensely before a trip, then go dormant until next trip
-
-Does this match how your users interact with the product?
-```
-
-### Success metric (Episodic example)
-
-```
-Primary: Active Window Engagement Rate
-Formula: Of users with an active {central_model} (end_date > today),
-         % who performed {core_action} in the last 7 days
-
-North Star: Repeat {central_model} Rate
-Formula: % of users who create a 2nd {central_model} after their
-         first one completes
-
-Leading: Activation rate (signup → first {core_action})
-         Completion rate at end-of-window
-Lagging: Repeat {central_model} rate, time to 2nd {central_model}
-```
-
-### PRODUCT.md output format
-
-```markdown
-# Product Context
-
-## Product Overview
-
-- **Name:** [Confirmed product name]
-- **One-liner:** [What the product does in one sentence]
-- **Stage:** [Pre-launch / Early / Growth / Mature]
-- **Usage Pattern:** [Daily Habitual / Episodic / Transactional / Seasonal / Consumption]
-- **Value Prop:** [Core value proposition]
-
-## User Personas
-
-[Discovered from models and routes]
-
-## Core Action
-
-- **Event:** [core_action_event_name]
-- **Description:** [What the user does]
-- **Central Model:** [The model at the center of the product]
-
-## Primary Success Metric
-
-[Pattern-appropriate metric from Step 9]
-
-## User Journeys
-
-| Domain | File | Events | Status |
-|--------|------|--------|--------|
-| Acquisition | journeys/acquisition.md | X | Not Tracked |
-| Activation | journeys/activation.md | X | Not Tracked |
-| Value Delivery | journeys/value-delivery.md | X | Not Tracked |
-| Monetization | journeys/monetization.md | X | Not Tracked |
-| Engagement | journeys/engagement.md | X | Not Tracked |
-| Expansion | journeys/expansion.md | X | Not Tracked |
-```
-
-### Journey file output format
-
-Each journey file follows this structure (example: `.growth/journeys/acquisition.md`):
-
-```markdown
-# Acquisition Journey
-
-Guest visitor → registered user. Ends at signup.
-
-## Flow
-
-Land on Homepage / Blog → View Pricing → Sign Up → Verify Email
-
-## Events
-
-| Step | Event Name | Type | Properties | Status |
-|------|-----------|------|------------|--------|
-| View landing page | `$pageview` | auto | `$referrer`, `utm_source`, `utm_medium`, `utm_campaign` | Not Tracked |
-| Read blog post | `$pageview` | auto | `$referrer`, `utm_source`, `blog_slug` | Not Tracked |
-| View pricing page | `$pageview` | auto | `$referrer`, `utm_source` | Not Tracked |
-| Sign up | `user_signed_up` | server | `method`, `referral_source`, `utm_source` | Not Tracked |
-| Verify email | `email_verified` | server | `time_to_verify` | Not Tracked |
-
-## Conversion Funnel
-
-$pageview (landing) → $pageview (pricing) → user_signed_up → email_verified → [handoff to Activation]
-
-## Metrics
-
-- **Signup rate:** user_signed_up / unique visitors
-- **Verification rate:** email_verified / user_signed_up
-
-## Notes
-
-- Acquisition events fire for anonymous visitors until signup — no `distinctId` until `user_signed_up`
-- At signup, alias the anonymous ID to the new user ID (PostHog handles this automatically)
-- Capture UTM parameters on first `$pageview` and carry them through to `user_signed_up`
-- Blog posts are key entry points — track `blog_slug` to identify high-converting content
-```
+Read `references/examples.md` for complete output examples.
 
 ---
 
 ## Anti-patterns
 
 - **Don't show blank templates.** Never present an empty PRODUCT.md and ask the user to fill it in. Always propose concrete values based on what the codebase reveals.
-- **Don't ask per-field questions.** Instead of asking "What is your product name?", "What is your core action?", etc., scan the code and propose answers. Let the user correct, not create.
-- **Don't classify without reading controllers.** Route URLs alone are insufficient. Read the controller code to understand what each endpoint actually does before classifying into journey domains.
-- **Don't default to WAU.** Weekly Active Users is a lazy default. Match the success metric to the detected usage pattern (Daily Habitual → DAU, Episodic → Repeat Rate, etc.).
-- **Don't skip confirmation.** Present each domain's journey separately and get explicit confirmation before moving on. Don't dump all 6 domains at once.
-- **Don't invent events.** Every proposed event name should map to a real controller action or route discovered in the codebase. Don't propose events for functionality that doesn't exist.
+- **Don't ask per-field questions.** Scan the code and propose answers. Let the user correct, not create.
+- **Don't classify without reading controllers.** Route URLs alone are insufficient. Read the controller code to understand what each endpoint actually does.
+- **Don't default to WAU.** Match the success metric to the detected usage pattern.
+- **Don't skip confirmation.** Present each domain's journey separately and get explicit confirmation before moving on.
+- **Don't invent events.** Every proposed event name should map to a real controller action or route discovered in the codebase.
 
 ---
 
