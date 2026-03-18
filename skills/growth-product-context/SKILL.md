@@ -5,6 +5,7 @@ license: MIT
 compatibility: Requires a Laravel application and Laravel Boost v2+ (provides list-routes, database-schema, and tinker tools).
 compatible_agents:
   - Claude Code
+  - Laravel Boost
   - Cursor
   - Windsurf
   - Amp
