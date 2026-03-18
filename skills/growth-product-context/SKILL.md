@@ -1,6 +1,14 @@
 ---
 name: growth-product-context
-description: "Discovers user journeys by scanning routes, controllers, and models, then proposes a product context with event names. Activates when mapping journeys, defining product context, creating PRODUCT.md, discovering what to track, or when the user mentions product context, journey mapping, or route discovery."
+description: >-
+  Discovers user journeys by scanning Laravel routes, controllers, and models,
+  then proposes a product context with AARRR pirate metrics event names. Use
+  when the user asks to map user journeys, define product context, create
+  PRODUCT.md, discover what to track, set up analytics events, or define their
+  funnel. Also trigger when someone mentions pirate metrics, AARRR framework,
+  user activation, retention tracking, product analytics, PostHog events, growth
+  metrics, conversion funnel, or asks "what should I track" or "what events do I
+  need" — even if they don't explicitly mention journeys or product context.
 license: MIT
 compatibility: Requires a Laravel application and Laravel Boost v2+ (provides list-routes, database-schema, and tinker tools).
 compatible_agents:
@@ -61,7 +69,7 @@ If `.growth/PRODUCT.md` doesn't exist yet, create it during Step 12.
 
 ### Step 1: Enter Plan Mode
 
-Enter plan mode before beginning discovery. Steps 1–10 are read-only — you will not write any files until the user approves the consolidated plan in Step 11.
+Enter plan mode. All discovery happens before any files are written.
 
 ### Step 2: Discover Routes
 
@@ -135,6 +143,20 @@ After the user approves the plan, exit plan mode and write the files:
 Read `references/output-formats.md` for the PRODUCT.md and journey file templates.
 
 Read `references/examples.md` for complete output examples.
+
+---
+
+## Gotchas
+
+- **Folio (page-based) routes won't show up in `list-routes`.** If the project uses Laravel Folio, routes live in `resources/views/pages/` as Blade files, not in `routes/web.php`. Scan that directory separately or you'll miss half the user journeys.
+
+- **API routes may be the primary user interface.** Don't assume `routes/web.php` is where the action is. SPAs with Inertia or mobile apps often have all meaningful user interactions in `routes/api.php`. Check both.
+
+- **The "central model" isn't always `User`.** In a CRM it's `Lead` or `Contact`. In an e-commerce app it's `Order`. In a project management tool it's `Project` or `Task`. Look at relationship density and controller usage, not just the name.
+
+- **Not every route is a trackable journey step.** Admin routes, health checks, webhook receivers, and API resource endpoints for internal tooling shouldn't be classified into AARRR stages. Filter these out early.
+
+- **Laravel Boost tools must be available.** This skill depends on `list-routes`, `database-schema`, and `tinker` from Laravel Boost. If these tools aren't available, the discovery phase will be incomplete. Check for Boost before starting.
 
 ---
 
